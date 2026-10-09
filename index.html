@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart ClassScan Pro</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --accent: #06b6d4;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            max-height: 900px;
+            background: #020617;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 1. INTRO SPLASH ANIMATION */
+        #splash-screen {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            text-align: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        .presentation-stage {
+            position: relative;
+            width: 220px;
+            height: 180px;
+            margin-bottom: 24px;
+        }
+
+        .podium {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 35px;
+            background: linear-gradient(135deg, #334155, #1e293b);
+            border-radius: 8px 8px 0 0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .projector-beam {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 80px solid transparent;
+            border-right: 80px solid transparent;
+            border-bottom: 120px solid rgba(6, 182, 212, 0.15);
+            filter: blur(4px);
+            animation: beamPulse 2s infinite alternate;
+        }
+
+        .screen-board {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 100px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+            animation: floatBoard 3s ease-in-out infinite alternate;
+        }
+
+        .screen-board i {
+            font-size: 2.2rem;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .screen-board span {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: #e2e8f0;
+        }
+
+        @keyframes beamPulse {
+            0% { opacity: 0.3; transform: translateX(-50%) scaleX(0.9); }
+            100% { opacity: 0.8; transform: translateX(-50%) scaleX(1.1); }
+        }
+
+        @keyframes floatBoard {
+            0% { transform: translateX(-50%) translateY(0); }
+            100% { transform: translateX(-50%) translateY(-6px); }
+        }
+
+        .splash-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .splash-subtitle {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* MAIN APP STYLING */
+        .app-header {
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .view-panel {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            padding-bottom: 70px;
+            overflow-y: auto;
+        }
+
+        .view-panel.active {
+            display: flex;
+        }
+
+        .camera-viewport {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background: #000;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scan-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .scan-frame {
+            width: 200px;
+            height: 200px;
+            border: 2px dashed rgba(6, 182, 212, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.5);
+        }
+
+        .camera-controls {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group input, .input-group select {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            color: white;
+            outline: none;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .tab-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 65px;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+        }
+
+        .logs-container { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .log-card { background: var(--card-bg); padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; margin-bottom: 8px;}
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 1. SPLASH SCREEN WITH PRESENTATION ANIMATION -->
+    <div id="splash-screen">
+        <div class="presentation-stage">
+            <div class="projector-beam"></div>
+            <div class="screen-board">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                <span>LIVE PRESENTATION</span>
+            </div>
+            <div class="podium"></div>
+        </div>
+        <h1 class="splash-title">ClassScan Pro</h1>
+        <p class="splash-subtitle">DAILY PRESENTATION & ATTENDANCE</p>
+        <button class="start-btn" onclick="startApp()">
+            <i class="fa-solid fa-camera"></i> Start Scanner
+        </button>
+    </div>
+
+    <!-- NAVBAR HEADER -->
+    <div class="app-header">
+        <div style="font-weight: 700;">
+            <i class="fa-solid fa-qrcode" style="color: var(--accent);"></i> ClassScan
+        </div>
+        <div id="current-date-display" style="font-size: 0.8rem; color: var(--text-muted);">Today</div>
+    </div>
+
+    <!-- VIEW 1: SCANNER VIEW -->
+    <div id="view-scan" class="view-panel active">
+        <div class="camera-viewport">
+            <video id="webcam" autoplay playsinline></video>
+            <div class="scan-overlay">
+                <div class="scan-frame"></div>
+            </div>
+        </div>
+
+        <div class="camera-controls">
+            <div class="input-group">
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Student Name / ID</label>
+                <input type="text" id="student-name" placeholder="Enter student name">
+            </div>
+
+            <div class="input-group">
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Topic / Presentation</label>
+                <input type="text" id="present-topic" placeholder="Topic name">
+            </div>
+
+            <button class="action-btn" onclick="captureAndSave()">Save Present Record</button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: DAILY LOGS -->
+    <div id="view-daily" class="view-panel">
+        <div class="logs-container">
+            <h3 style="font-size: 1rem; margin-bottom: 10px;">Aaj Ka Record (Today)</h3>
+            <div id="today-logs-list"></div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: MONTHLY HISTORY -->
+    <div id="view-monthly" class="view-panel">
+        <div class="logs-container">
+            <select id="month-filter" onchange="renderMonthlyLogs()" style="padding: 10px; background: #1e293b; color: white; border-radius: 8px; margin-bottom: 10px;">
+                <option value="last-month">Pichhla Mahina (Last Month)</option>
+                <option value="this-month">Iss Mahine (This Month)</option>
+                <option value="all">Tamam History (All)</option>
+            </select>
+            <div id="monthly-logs-list"></div>
+        </div>
+    </div>
+
+    <!-- BOTTOM TAB NAVIGATION -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('scan', this)">
+            <i class="fa-solid fa-camera" style="font-size: 1.2rem;"></i>
+            <span>Scanner</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('daily', this)">
+            <i class="fa-solid fa-calendar-check" style="font-size: 1.2rem;"></i>
+            <span>Rojana Logs</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('monthly', this)">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.2rem;"></i>
+            <span>Pichhla Mahina</span>
+        </button>
+    </div>
+
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('class_scan_db')) || [];
+
+    if (db.length === 0) {
+        const now = new Date();
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+        db = [
+            { id: 1, name: "Aman Sharma", topic: "AI in Education", date: lastMonthDate.toISOString().split('T')[0], time: "10:30 AM" },
+            { id: 2, name: "Priya Verma", topic: "Web Development", date: lastMonthDate.toISOString().split('T')[0], time: "11:00 AM" }
+        ];
+        localStorage.setItem('class_scan_db', JSON.stringify(db));
+    }
+
+    document.getElementById('current-date-display').innerText = new Date().toLocaleDateString();
+
+    function startApp() {
+        document.getElementById('splash-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('splash-screen').style.visibility = 'hidden';
+            initCamera();
+        }, 800);
+    }
+
+    async function initCamera() {
+        const video = document.getElementById('webcam');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+        } catch (err) {
+            try {
+                const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = fallbackStream;
+            } catch (e) {
+                console.log("Camera permissions error");
+            }
+        }
+    }
+
+    function captureAndSave() {
+        const nameInput = document.getElementById('student-name');
+        const topicInput = document.getElementById('present-topic');
+
+        if (!nameInput.value.trim()) {
+            alert("Kripya student ka naam bharein!");
+            return;
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        db.push({
+            id: Date.now(),
+            name: nameInput.value.trim(),
+            topic: topicInput.value.trim() || "Presentation",
+            date: todayStr,
+            time: timeStr
+        });
+
+        localStorage.setItem('class_scan_db', JSON.stringify(db));
+        nameInput.value = '';
+        topicInput.value = '';
+        alert("Record Saved!");
+        renderDailyLogs();
+        renderMonthlyLogs();
+    }
+
+    function switchTab(tabName, btnElement) {
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`view-${tabName}`).classList.add('active');
+        btnElement.classList.add('active');
+
+        if (tabName === 'daily') renderDailyLogs();
+        if (tabName === 'monthly') renderMonthlyLogs();
+    }
+
+    function renderDailyLogs() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayRecords = db.filter(item => item.date === todayStr);
+        const container = document.getElementById('today-logs-list');
+        container.innerHTML = todayRecords.length === 0 ? '<p style="color:#888;">Aaj koi record nahi hai.</p>' : '';
+        
+        todayRecords.forEach(item => {
+            container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small>${item.topic} • ${item.time}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
+        });
+    }
+
+    function renderMonthlyLogs() {
+        const filterVal = document.getElementById('month-filter').value;
+        const now = new Date();
+        const container = document.getElementById('monthly-logs-list');
+        container.innerHTML = '';
+
+        let filteredData = db;
+        if (filterVal === 'last-month') {
+            const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+            filteredData = db.filter(item => new Date(item.date).getMonth() === lastMonth);
+        } else if (filterVal === 'this-month') {
+            filteredData = db.filter(item => new Date(item.date).getMonth() === now.getMonth());
+        }
+
+        if(filteredData.length === 0) container.innerHTML = '<p style="color:#888;">Koi record nahi mila.</p>';
+
+        filteredData.forEach(item => {
+            container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small>${item.date} • ${item.topic}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
+        });
+    }
+
+    renderDailyLogs();
+    renderMonthlyLogs();
+</script>
+</body>
+</html>
