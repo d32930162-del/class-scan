@@ -89,7 +89,6 @@
         <div id="qr-reader"></div>
 
         <div class="camera-controls">
-            <!-- STATUS MESSAGES -->
             <div id="scan-alert" class="alert-box"></div>
 
             <div class="input-group">
@@ -121,8 +120,8 @@
 </div>
 
 <script>
-    // 🔒 YAHAN AAP APNA FIX CODE CHANGE KAR SAKTE HAIN:
-    const FIXED_ALLOWED_QR_CODE = "CLASS_PRESENT_2024";
+    // Yahan fix code "PRESENT" set hai
+    const FIXED_ALLOWED_QR_CODE = "PRESENT";
 
     let db = JSON.parse(localStorage.getItem('class_scan_db')) || [];
     let html5QrCode = null;
@@ -144,7 +143,6 @@
         ).catch(e => console.log(e));
     }
 
-    // AUTOMATIC QR SCAN MATCHING LOGIC
     function onScanSuccess(decodedText) {
         if (isCooldown) return;
         isCooldown = true;
@@ -152,7 +150,6 @@
         const alertBox = document.getElementById('scan-alert');
         const studentName = document.getElementById('student-name').value.trim() || "Student";
 
-        // CHECK IF SCANNED QR MATCHES FIXED CODE
         if (decodedText.trim() === FIXED_ALLOWED_QR_CODE) {
             const todayStr = new Date().toISOString().split('T')[0];
             const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -174,7 +171,6 @@
             renderDailyLogs();
             document.getElementById('student-name').value = '';
         } else {
-            // IF WRONG QR CODE IS SHOWN
             alertBox.className = "alert-box alert-danger";
             alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> INVALID QR CODE! Access Denied.`;
             alertBox.style.display = "block";
