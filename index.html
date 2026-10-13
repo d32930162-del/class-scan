@@ -26,6 +26,7 @@
         .app-container {
             width: 100%; max-width: 430px; height: 100vh; max-height: 900px;
             background: #020617; position: relative; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
         }
 
         #splash-screen {
@@ -39,16 +40,18 @@
         .start-btn {
             background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none;
             padding: 14px 32px; font-size: 1rem; font-weight: 700; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
         }
 
-        .app-header { padding: 16px 20px; background: rgba(15, 23, 42, 0.9); display: flex; justify-content: space-between; align-items: center; }
+        .app-header { padding: 16px 20px; background: rgba(15, 23, 42, 0.9); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
 
-        .view-panel { display: none; flex-direction: column; height: 100%; padding-bottom: 70px; overflow-y: auto; }
+        .view-panel { display: none; flex-direction: column; height: calc(100% - 130px); padding-bottom: 20px; overflow-y: auto; }
         .view-panel.active { display: flex; }
 
         #qr-reader { width: 100%; background: #000; border: none !important; }
+        #qr-reader video { width: 100% !important; object-fit: cover !important; }
 
-        .camera-controls { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .camera-controls { padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #020617; flex-grow: 1; }
 
         .alert-box {
             padding: 12px; border-radius: 8px; font-size: 0.85rem; text-align: center; display: none; font-weight: 600;
@@ -58,16 +61,18 @@
 
         .input-group { display: flex; flex-direction: column; gap: 6px; }
         .input-group input { background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; color: white; outline: none; }
+        .input-group input:focus { border-color: var(--accent); }
 
         .tab-bar {
             position: absolute; bottom: 0; width: 100%; height: 65px; background: rgba(15, 23, 42, 0.95);
             display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.08);
+            z-index: 50;
         }
-        .tab-btn { background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.75rem; cursor: pointer; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.75rem; cursor: pointer; transition: color 0.2s; }
         .tab-btn.active { color: var(--accent); }
 
         .logs-container { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-        .log-card { background: var(--card-bg); padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; margin-bottom: 8px;}
+        .log-card { background: var(--card-bg); padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -100,13 +105,14 @@
 
     <div id="view-daily" class="view-panel">
         <div class="logs-container">
-            <h3 style="font-size: 1rem; margin-bottom: 10px;">Aaj Ka Record (Today)</h3>
+            <h3 style="font-size: 1rem; margin-bottom: 4px;">Aaj Ka Record (Today)</h3>
             <div id="today-logs-list"></div>
         </div>
     </div>
 
     <div id="view-monthly" class="view-panel">
         <div class="logs-container">
+            <h3 style="font-size: 1rem; margin-bottom: 4px;">All History</h3>
             <div id="monthly-logs-list"></div>
         </div>
     </div>
@@ -123,6 +129,7 @@
     let db = JSON.parse(localStorage.getItem('class_scan_db')) || [];
     let html5QrCode = null;
     let isCooldown = false;
+    let scannerIsRunning = false;
 
     document.getElementById('current-date-display').innerText = new Date().toLocaleDateString();
 
@@ -132,12 +139,30 @@
     }
 
     function initQRScanner() {
+        if (scannerIsRunning) return;
+        
         html5QrCode = new Html5Qrcode("qr-reader");
         html5QrCode.start(
             { facingMode: "environment" }, 
-            { fps: 10, qrbox: { width: 220, height: 220 } }, 
+            { fps: 10, qrbox: { width: 200, height: 200 } }, 
             onScanSuccess
-        ).catch(e => console.log(e));
+        ).then(() => {
+            scannerIsRunning = true;
+        }).catch(err => {
+            console.error("Camera Error:", err);
+            const alertBox = document.getElementById('scan-alert');
+            alertBox.className = "alert-box alert-danger";
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Camera Error: ${err}`;
+            alertBox.style.display = "block";
+        });
+    }
+
+    function stopQRScanner() {
+        if (html5QrCode && scannerIsRunning) {
+            html5QrCode.stop().then(() => {
+                scannerIsRunning = false;
+            }).catch(err => console.log("Failed to clear scanner. ", err));
+        }
     }
 
     function onScanSuccess(decodedText) {
@@ -145,12 +170,13 @@
         isCooldown = true;
 
         const alertBox = document.getElementById('scan-alert');
-        const studentName = document.getElementById('student-name').value.trim() || "Student";
+        let studentName = document.getElementById('student-name').value.trim();
+        if (!studentName) {
+            studentName = "Guest Student";
+        }
         
-        // Clean text (remove spaces & uppercase)
         const scannedTextClean = decodedText.trim().toUpperCase();
 
-        // FLEXIBLE MATCHING: Checks if PRESENT is inside scanned content
         if (scannedTextClean.includes("PRESENT")) {
             const todayStr = new Date().toISOString().split('T')[0];
             const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -172,7 +198,6 @@
             renderDailyLogs();
             document.getElementById('student-name').value = '';
         } else {
-            // SHOW EXACTLY WHAT WAS SCANNED IN RED ALERT
             alertBox.className = "alert-box alert-danger";
             alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> INVALID QR!<br><small style="font-size:0.7rem;">Scanned: "${decodedText.substring(0, 30)}"</small>`;
             alertBox.style.display = "block";
@@ -190,6 +215,12 @@
         document.getElementById(`view-${tabName}`).classList.add('active');
         btnElement.classList.add('active');
 
+        if (tabName === 'scan') {
+            if (!scannerIsRunning) initQRScanner();
+        } else {
+            stopQRScanner();
+        }
+
         if (tabName === 'daily') renderDailyLogs();
         if (tabName === 'monthly') renderMonthlyLogs();
     }
@@ -198,18 +229,29 @@
         const todayStr = new Date().toISOString().split('T')[0];
         const todayRecords = db.filter(item => item.date === todayStr);
         const container = document.getElementById('today-logs-list');
-        container.innerHTML = todayRecords.length === 0 ? '<p style="color:#888;">Aaj koi record nahi hai.</p>' : '';
         
-        todayRecords.forEach(item => {
-            container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small>${item.time}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
+        if (todayRecords.length === 0) {
+            container.innerHTML = '<p style="color:#888; font-size:0.85rem; margin-top:10px;">Aaj koi record nahi hai.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        todayRecords.slice().reverse().forEach(item => {
+            container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small style="color:var(--text-muted);">${item.time}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
         });
     }
 
     function renderMonthlyLogs() {
         const container = document.getElementById('monthly-logs-list');
-        container.innerHTML = db.length === 0 ? '<p style="color:#888;">Koi record nahi hai.</p>';
-        db.forEach(item => {
-            container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small>${item.date} • ${item.time}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
+        
+        if (db.length === 0) {
+            container.innerHTML = '<p style="color:#888; font-size:0.85rem; margin-top:10px;">Koi record nahi hai.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        db.slice().reverse().forEach(item => {
+            container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small style="color:var(--text-muted);">${item.date} • ${item.time}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
         });
     }
 
