@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart ClassScan Pro - Fixed QR Scanner</title>
+    <title>Smart ClassScan Pro - Debug Scanner</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -76,7 +76,7 @@
 
     <div id="splash-screen">
         <h1 class="splash-title">ClassScan Pro</h1>
-        <p class="splash-subtitle">FIXED VALID QR ATTENDANCE</p>
+        <p class="splash-subtitle">SMART QR VALIDATOR</p>
         <button class="start-btn" onclick="startApp()">Start Scanner</button>
     </div>
 
@@ -93,7 +93,7 @@
 
             <div class="input-group">
                 <label style="font-size: 0.8rem; color: var(--text-muted);">Student Name / Roll No</label>
-                <input type="text" id="student-name" placeholder="Enter student name first">
+                <input type="text" id="student-name" placeholder="Enter student name">
             </div>
         </div>
     </div>
@@ -120,9 +120,6 @@
 </div>
 
 <script>
-    // Yahan fix code "PRESENT" set hai
-    const FIXED_ALLOWED_QR_CODE = "PRESENT";
-
     let db = JSON.parse(localStorage.getItem('class_scan_db')) || [];
     let html5QrCode = null;
     let isCooldown = false;
@@ -149,15 +146,19 @@
 
         const alertBox = document.getElementById('scan-alert');
         const studentName = document.getElementById('student-name').value.trim() || "Student";
+        
+        // Clean text (remove spaces & uppercase)
+        const scannedTextClean = decodedText.trim().toUpperCase();
 
-        if (decodedText.trim() === FIXED_ALLOWED_QR_CODE) {
+        // FLEXIBLE MATCHING: Checks if PRESENT is inside scanned content
+        if (scannedTextClean.includes("PRESENT")) {
             const todayStr = new Date().toISOString().split('T')[0];
             const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             db.push({
                 id: Date.now(),
                 name: studentName,
-                topic: "Verified QR Scan",
+                topic: "Verified Scan",
                 date: todayStr,
                 time: timeStr
             });
@@ -171,15 +172,16 @@
             renderDailyLogs();
             document.getElementById('student-name').value = '';
         } else {
+            // SHOW EXACTLY WHAT WAS SCANNED IN RED ALERT
             alertBox.className = "alert-box alert-danger";
-            alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> INVALID QR CODE! Access Denied.`;
+            alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> INVALID QR!<br><small style="font-size:0.7rem;">Scanned: "${decodedText.substring(0, 30)}"</small>`;
             alertBox.style.display = "block";
         }
 
         setTimeout(() => {
             alertBox.style.display = "none";
             isCooldown = false;
-        }, 3000);
+        }, 3500);
     }
 
     function switchTab(tabName, btnElement) {
@@ -205,7 +207,7 @@
 
     function renderMonthlyLogs() {
         const container = document.getElementById('monthly-logs-list');
-        container.innerHTML = db.length === 0 ? '<p style="color:#888;">Koi record nahi hai.</p>' : '';
+        container.innerHTML = db.length === 0 ? '<p style="color:#888;">Koi record nahi hai.</p>';
         db.forEach(item => {
             container.innerHTML += `<div class="log-card"><div><strong>${item.name}</strong><br><small>${item.date} • ${item.time}</small></div><span style="color:#10b981;font-size:0.8rem;font-weight:bold;">PRESENT</span></div>`;
         });
