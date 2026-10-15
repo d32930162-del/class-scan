@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart ClassScan Pro - Advanced Edition</title>
+    <title>Smart ClassScan Pro - Secure Flow</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -62,7 +62,7 @@
         .action-btn {
             background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none;
             padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; cursor: pointer; text-align: center; margin-top: 5px;
-            display: none;
+            display: none; /* Hidden by default */
         }
 
         .secondary-btn {
@@ -93,7 +93,7 @@
 
     <div id="splash-screen">
         <h1 class="splash-title">ClassScan Pro</h1>
-        <p class="splash-subtitle">ADVANCED ATTENDANCE SYSTEM</p>
+        <p class="splash-subtitle">SECURE ATTENDANCE SYSTEM</p>
         <button class="start-btn" onclick="startApp()">Start Scanner</button>
     </div>
 
@@ -110,13 +110,14 @@
 
             <div class="input-group">
                 <label style="font-size: 0.8rem; color: var(--text-muted);">Student Name / Roll No</label>
-                <input type="text" id="student-name" placeholder="Enter your name first">
+                <input type="text" id="student-name" placeholder="Enter your name first" oninput="checkFormReady()">
             </div>
 
             <div id="scanned-info-box" class="scanned-info">
-                <i class="fa-solid fa-check-circle" style="color: var(--success);"></i> QR Verified! Click Continue to Save.
+                <i class="fa-solid fa-check-circle" style="color: var(--success);"></i> QR Code Verified! Ab apna naam enter karein.
             </div>
 
+            <!-- CONTINUE BUTTON (Sirf tab dikhega jab QR scan ho jaye AUR Naam likh diya jaye) -->
             <button id="continue-btn" class="action-btn" onclick="saveAttendance()">Continue / Save Attendance</button>
         </div>
     </div>
@@ -174,8 +175,6 @@
     }
 
     function onScanSuccess(decodedText) {
-        if (isQrVerified) return;
-
         const alertBox = document.getElementById('scan-alert');
         const scannedTextClean = decodedText.trim().toUpperCase();
 
@@ -187,7 +186,11 @@
             alertBox.style.display = "block";
 
             document.getElementById('scanned-info-box').style.display = "block";
-            document.getElementById('continue-btn').style.display = "block";
+            checkFormReady(); // Check karega ki naam likha hai ya nahi
+
+            setTimeout(() => {
+                alertBox.style.display = "none";
+            }, 3000);
         } else {
             alertBox.className = "alert-box alert-danger";
             alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> INVALID QR CODE!`;
@@ -199,9 +202,26 @@
         }
     }
 
+    // Ye function check karega ki QR verified hai AND Name field khali nahi hai
+    function checkFormReady() {
+        const studentName = document.getElementById('student-name').value.trim();
+        const continueBtn = document.getElementById('continue-btn');
+
+        if (isQrVerified && studentName.length > 0) {
+            continueBtn.style.display = "block";
+        } else {
+            continueBtn.style.display = "none";
+        }
+    }
+
     function saveAttendance() {
         const studentName = document.getElementById('student-name').value.trim();
         const alertBox = document.getElementById('scan-alert');
+
+        if (!isQrVerified) {
+            alert("Pehle valid QR code scan karein!");
+            return;
+        }
 
         if (!studentName) {
             alert("Pehle apna Naam / Roll No enter karein!");
@@ -225,6 +245,7 @@
         alertBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> SUCCESS: ${studentName} Marked Present!`;
         alertBox.style.display = "block";
 
+        // Reset everything for next student
         document.getElementById('student-name').value = '';
         document.getElementById('continue-btn').style.display = 'none';
         document.getElementById('scanned-info-box').style.display = 'none';
@@ -237,7 +258,7 @@
         }, 3000);
     }
 
-    // 🔒 PASSWORD PROTECTION FOR LOGS & HISTORY (Set to: Qwerty@123)
+    // 🔒 PASSWORD PROTECTION FOR LOGS & HISTORY
     function switchTab(tabName, btnElement) {
         if (tabName === 'daily' || tabName === 'monthly') {
             let pwd = prompt("Teacher Password enter karein:");
